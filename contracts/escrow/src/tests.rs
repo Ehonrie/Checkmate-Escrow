@@ -1780,3 +1780,30 @@ fn test_transfer_admin_success_and_old_admin_rejected() {
         "old admin should be rejected after transfer"
     );
 }
+
+#[test]
+fn test_duplicate_game_id_cross_platform_rejected() {
+    let (env, contract_id, _oracle, player1, player2, token, _admin) = setup();
+    let client = EscrowContractClient::new(&env, &contract_id);
+
+    client.create_match(
+        &player1,
+        &player2,
+        &100,
+        &token,
+        &String::from_str(&env, "shared_game_id"),
+        &Platform::Lichess,
+    );
+
+    // Same game_id, different platform — must be rejected
+    let result = client.try_create_match(
+        &player1,
+        &player2,
+        &100,
+        &token,
+        &String::from_str(&env, "shared_game_id"),
+        &Platform::ChessDotCom,
+    );
+    assert_eq!(result, Err(Ok(Error::DuplicateGameId)));
+}
+

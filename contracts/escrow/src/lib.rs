@@ -115,6 +115,10 @@ impl EscrowContract {
             return Err(Error::InvalidAmount);
         }
 
+        if env.storage().persistent().has(&DataKey::GameId(game_id.clone())) {
+            return Err(Error::DuplicateGameId);
+        }
+
         let id: u64 = env
             .storage()
             .instance()
@@ -131,7 +135,7 @@ impl EscrowContract {
             player2,
             stake_amount,
             token,
-            game_id,
+            game_id: game_id.clone(),
             platform,
             state: MatchState::Pending,
             player1_deposited: false,
@@ -149,6 +153,10 @@ impl EscrowContract {
         // Guard against u64 overflow in release mode where wrapping would occur silently
         let next_id = id.checked_add(1).ok_or(Error::Overflow)?;
         env.storage().instance().set(&DataKey::MatchCount, &next_id);
+
+        env.storage()
+            .persistent()
+            .set(&DataKey::GameId(game_id), &id);
 
         env.events().publish(
             (Symbol::new(&env, "match"), symbol_short!("created")),
